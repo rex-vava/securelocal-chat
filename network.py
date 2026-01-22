@@ -17,8 +17,10 @@ import os
 
 
 class NetworkManager:
-    def __init__(self, database):
+    def __init__(self, database, port):
         self.database = database
+        self.port = port
+        self.listener_started = False
         self.running = False
 
         self.online_users = {}
@@ -68,11 +70,19 @@ class NetworkManager:
         threading.Thread(target=self._broadcast_presence, daemon=True).start()
         threading.Thread(target=self._listen_for_peers, daemon=True).start()
         threading.Thread(target=self._tcp_server, daemon=True).start()
+    
+    def start_listener(self):
+        if self.listener_started:
+            return  # HARD STOP
+        self.listener_started = True
+        
+        thread = threading.Thread(target=self._listen_for_peers, daemon=True)
+        thread.start()
+
 
     # ------------------------------------------------------------------
     # UDP DISCOVERY
-    # ------------------------------------------------------------------
-
+    # ----------------------------------------------------------------__                
     def _broadcast_presence(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -93,8 +103,10 @@ class NetworkManager:
             time.sleep(self.broadcast_interval)
 
     def _listen_for_peers(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("", self.port))
+        sock.listen(5)
 
         while self.running:
             try:
