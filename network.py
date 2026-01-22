@@ -60,6 +60,9 @@ class NetworkManager:
         print(f"[KEYS] Loaded for {username}")
 
     def start(self):
+        if not self.username or not self.public_key:
+            print("[NETWORK] Cannot start before set_username()")
+            return
         self.running = True
 
         threading.Thread(target=self._broadcast_presence, daemon=True).start()

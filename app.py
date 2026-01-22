@@ -37,6 +37,7 @@ def initialize_app():
         network = NetworkManager(database)
 
         network.start()
+        network = NetworkManager(database)
         print("[APP] Initialized successfully")
         return True
     except Exception as e:
@@ -69,6 +70,7 @@ def login():
             session['username'] = username
             if network:
                 network.set_username(username)
+                network.start()
             if not database.user_exists(username):
                 database.add_user(username)
             flash('Welcome back!', 'success')
