@@ -159,9 +159,9 @@ def api_messages():
 
         # Send message via network if recipient is online
         if network:
-            recipient_ip = next((u['ip'] for u in network.get_online_users() if u['username'] == recipient), None)
-            if recipient_ip:
-                network.send_message(current_user, recipient_ip, message)
+          recipient_user = next((uid for uid, u in network.get_online_users().items() if u['username'] == recipient), None)
+        if recipient_user:
+            network.send_message(recipient_user, message)
 
         return jsonify({"success": True, "message_id": msg_id})
 
