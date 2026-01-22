@@ -1,12 +1,6 @@
 """
-Network Manager using the working broadcast method + E2EE
+Network Manager - UDP discovery + TCP messaging with E2EE
 """
-
-from e2e_encryption import (
-    generate_rsa_keys, load_rsa_keys,
-    generate_session_key, encrypt_session_key, decrypt_session_key,
-    encrypt_message, decrypt_message
-)
 
 import socket
 import threading
@@ -15,15 +9,30 @@ import time
 import uuid
 import os
 
+from e2e_encryption import (
+    generate_rsa_keys, load_rsa_keys,
+    generate_session_key, encrypt_session_key, decrypt_session_key,
+    encrypt_message, decrypt_message
+)
+
 
 class NetworkManager:
-    def __init__(self, database, port):
+    DISCOVERY_PORT = 6667
+    TCP_PORT = 6668
+    BROADCAST_INTERVAL = 3
+
+    def __init__(self, database):
         self.database = database
-        self.port = port
-        self.listener_started = False
         self.running = False
 
+        self.user_id = str(uuid.uuid4())[:8]
+        self.username = None
+        self.local_ip = self._get_local_ip()
+
+        # Online users: user_id -> {username, ip, public_key, last_seen}
         self.online_users = {}
+
+        # Message callbacks for GUI or API
         self.message_callbacks = []
 
         # E2EE
@@ -31,15 +40,9 @@ class NetworkManager:
         self.private_key = None
         self.session_keys = {}  # user_id -> AES key
 
-        self.port = 6667
-        self.broadcast_interval = 3
+        print(f"[NETWORK] Initialized at IP {self.local_ip}")
 
-        self.user_id = str(uuid.uuid4())[:8]
-        self.username = None
-        self.local_ip = self._get_local_ip()
-
-        print(f"[NETWORK] Initialized: {self.local_ip}")
-
+    # ------------------ Helper ------------------
     def _get_local_ip(self):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -52,7 +55,6 @@ class NetworkManager:
 
     def set_username(self, username):
         self.username = username
-
         key_dir = f"keys/{self.user_id}"
         if not os.path.exists(key_dir):
             self.public_key, self.private_key = generate_rsa_keys(self.user_id)
@@ -61,121 +63,126 @@ class NetworkManager:
 
         print(f"[KEYS] Loaded for {username}")
 
+    # ------------------ Start / Stop ------------------
     def start(self):
         if not self.username or not self.public_key:
-            print("[NETWORK] Cannot start before set_username()")
-            return
+            raise Exception("Call set_username() before start()")
+
+        if self.running:
+            return  # Already running
+
         self.running = True
 
         threading.Thread(target=self._broadcast_presence, daemon=True).start()
         threading.Thread(target=self._listen_for_peers, daemon=True).start()
         threading.Thread(target=self._tcp_server, daemon=True).start()
-    
-    def start_listener(self):
-        if self.listener_started:
-            return  # HARD STOP
-        self.listener_started = True
-        
-        thread = threading.Thread(target=self._listen_for_peers, daemon=True)
-        thread.start()
 
+        print("[NETWORK] Started UDP discovery + TCP server")
 
-    # ------------------------------------------------------------------
-    # UDP DISCOVERY
-    # ----------------------------------------------------------------__                
+    def stop(self):
+        self.running = False
+
+    # ------------------ UDP Discovery ------------------
     def _broadcast_presence(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         while self.running:
             try:
-                packet = {
+                packet = json.dumps({
                     "type": "discovery",
                     "user_id": self.user_id,
                     "username": self.username,
-                    "ip": self.local_ip,
                     "public_key": self.public_key.decode()
-                }
-                sock.sendto(json.dumps(packet).encode(), ("<broadcast>", self.port))
+                })
+                sock.sendto(packet.encode(), ("<broadcast>", self.DISCOVERY_PORT))
             except Exception as e:
                 print("[BROADCAST ERROR]", e)
 
-            time.sleep(self.broadcast_interval)
+            time.sleep(self.BROADCAST_INTERVAL)
+
+        sock.close()
 
     def _listen_for_peers(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(("", self.port))
-        sock.listen(5)
+        sock.bind(("", self.DISCOVERY_PORT))
+        sock.settimeout(1)
 
         while self.running:
             try:
                 data, addr = sock.recvfrom(4096)
                 packet = json.loads(data.decode())
 
-                if packet["type"] == "discovery":
-                    uid = packet["user_id"]
-                    if uid == self.user_id:
-                        continue
+                if packet.get("type") != "discovery":
+                    continue
+                uid = packet["user_id"]
+                if uid == self.user_id:
+                    continue
 
-                    self.online_users[uid] = {
-                        "username": packet["username"],
-                        "ip": packet["ip"],
-                        "public_key": packet["public_key"],
-                        "last_seen": time.time()
-                    }
+                self.online_users[uid] = {
+                    "username": packet["username"],
+                    "ip": addr[0],
+                    "public_key": packet["public_key"],
+                    "last_seen": time.time()
+                }
 
-            except:
-                pass
+            except socket.timeout:
+                continue
+            except Exception as e:
+                print("[DISCOVERY ERROR]", e)
 
-    # ------------------------------------------------------------------
-    # TCP
-    # ------------------------------------------------------------------
+        sock.close()
 
+    def get_online_users(self):
+        now = time.time()
+        # Remove stale users (last seen > 10s ago)
+        stale = [uid for uid, u in self.online_users.items() if now - u["last_seen"] > 10]
+        for uid in stale:
+            del self.online_users[uid]
+
+        return [
+            {"user_id": uid, **u}
+            for uid, u in self.online_users.items()
+        ]
+
+    # ------------------ TCP Messaging ------------------
     def _tcp_server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(("0.0.0.0", self.port))
+        sock.bind(("0.0.0.0", self.TCP_PORT))
         sock.listen(5)
+        sock.settimeout(1)
 
         while self.running:
             try:
                 c, addr = sock.accept()
-                threading.Thread(
-                    target=self._handle_tcp_client,
-                    args=(c,),
-                    daemon=True
-                ).start()
-            except:
-                pass
+                threading.Thread(target=self._handle_tcp_client, args=(c,), daemon=True).start()
+            except socket.timeout:
+                continue
+            except Exception as e:
+                print("[TCP SERVER ERROR]", e)
+
+        sock.close()
 
     def _handle_tcp_client(self, c):
         try:
             packet = json.loads(c.recv(8192).decode())
+            ptype = packet.get("type")
 
-            if packet["type"] == "session_key":
-                self.session_keys[packet["sender_id"]] = decrypt_session_key(
-                    packet["data"],
-                    self.private_key
-                )
+            if ptype == "session_key":
+                sender_id = packet["sender_id"]
+                self.session_keys[sender_id] = decrypt_session_key(packet["data"], self.private_key)
                 c.send(b"OK")
-                return
 
-            if packet["type"] == "secure_message":
-                plaintext = decrypt_message(
-                    packet["payload"],
-                    self.session_keys[packet["sender_id"]]
-                )
+            elif ptype == "secure_message":
+                sender_id = packet["sender_id"]
+                plaintext = decrypt_message(packet["payload"], self.session_keys[sender_id])
 
-                self.database.save_message(
-                    packet["sender"],
-                    self.username,
-                    plaintext,
-                    is_encrypted=True
-                )
+                self.database.save_message(packet["sender"], self.username, plaintext, is_encrypted=True)
 
                 for cb in self.message_callbacks:
-                    cb(plaintext)
+                    cb({"sender": packet["sender"], "message": plaintext, "timestamp": packet["timestamp"]})
 
                 c.send(b"OK")
 
@@ -184,44 +191,35 @@ class NetworkManager:
         finally:
             c.close()
 
-    # ------------------------------------------------------------------
-    # SEND MESSAGE
-    # ------------------------------------------------------------------
-
+    # ------------------ Send Message ------------------
     def send_message(self, recipient_id, plaintext):
+        if recipient_id not in self.online_users:
+            raise Exception("Recipient not online")
+
         user = self.online_users[recipient_id]
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((user["ip"], self.TCP_PORT))
 
-        c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        c.connect((user["ip"], self.port))
-
+        # Ensure session key
         if recipient_id not in self.session_keys:
             sk = generate_session_key()
             self.session_keys[recipient_id] = sk
-
-            encrypted_sk = encrypt_session_key(
-                sk,
-                user["public_key"]
-            )
-
-            c.send(json.dumps({
+            encrypted_sk = encrypt_session_key(sk, user["public_key"])
+            sock.send(json.dumps({
                 "type": "session_key",
                 "sender_id": self.user_id,
                 "data": encrypted_sk
             }).encode())
-            c.recv(1024)
+            sock.recv(1024)  # ACK
 
-        encrypted_msg = encrypt_message(
-            plaintext,
-            self.session_keys[recipient_id]
-        )
-
-        c.send(json.dumps({
+        # Send encrypted message
+        encrypted_msg = encrypt_message(plaintext, self.session_keys[recipient_id])
+        sock.send(json.dumps({
             "type": "secure_message",
             "sender": self.username,
             "sender_id": self.user_id,
             "payload": encrypted_msg,
             "timestamp": time.time()
         }).encode())
-
-        c.recv(1024)
-        c.close()
+        sock.recv(1024)
+        sock.close()

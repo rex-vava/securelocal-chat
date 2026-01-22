@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SecureLocal Chat using working broadcast method
+SecureLocal Chat using working broadcast + TCP/E2EE
 """
 
 import sys
@@ -12,33 +12,29 @@ from security import SecurityManager
 from database import DatabaseManager
 from network import NetworkManager
 
+# ----------------- Flask Setup -----------------
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Global instances
-security = None
-database = None
-network = None
+# ----------------- Global Instances -----------------
+security: SecurityManager = None
+database: DatabaseManager = None
+network: NetworkManager = None
 
 # ----------------- App Initialization -----------------
 def initialize_app():
     global security, database, network
     try:
-        # Create data directory
-        if sys.platform == 'win32':
-            data_path = Path(os.environ.get('APPDATA', '')) / 'SecureLocalChat'
-        else:
-            data_path = Path.home() / '.securelocalchat'
+        # Create app data directory
+        data_path = Path.home() / '.securelocalchat' if sys.platform != 'win32' else Path(os.environ.get('APPDATA', '')) / 'SecureLocalChat'
         data_path.mkdir(parents=True, exist_ok=True)
 
-        # Initialize components
+        # Initialize core components
         database = DatabaseManager(data_path / 'chat.db')
         security = SecurityManager(data_path)
         network = NetworkManager(database)
 
-        network.start()
-        network = NetworkManager(database)
-        print("[APP] Initialized successfully")
+        print("[APP] Initialization successful")
         return True
     except Exception as e:
         print(f"[APP] Initialization failed: {e}")
@@ -47,7 +43,7 @@ def initialize_app():
 if not initialize_app():
     print("WARNING: Failed to initialize app")
 
-# ----------------- Web Pages -----------------
+# ----------------- Web Routes -----------------
 @app.route('/')
 def index():
     if 'username' not in session:
@@ -62,6 +58,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
+
         if not username or not password:
             flash('Please enter username and password', 'error')
             return render_template('login.html')
@@ -140,19 +137,17 @@ def api_get_users():
     if 'username' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     try:
-        users = network.get_online_users() if network else []
-        return jsonify({'users': users})
-    except:
+        return jsonify({'users': network.get_online_users() if network else []})
+    except Exception:
         return jsonify({'users': []})
 
-# ----------------- Messages & Real-Time Status -----------------
 @app.route('/api/messages', methods=['GET', 'POST'])
 def api_messages():
     if 'username' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     current_user = session['username']
 
-    if request.method == "POST":
+    if request.method == 'POST':
         data = request.json
         recipient = data.get("recipient", "").strip()
         message = data.get("message", "").strip()
@@ -160,10 +155,9 @@ def api_messages():
         if not recipient or not message:
             return jsonify({"error": "Recipient and message required"}), 400
 
-        # Save message in DB
         msg_id = database.save_message(current_user, recipient, message, is_encrypted=False)
 
-        # Optional: send via network if online
+        # Send message via network if recipient is online
         if network:
             recipient_ip = next((u['ip'] for u in network.get_online_users() if u['username'] == recipient), None)
             if recipient_ip:
@@ -171,7 +165,7 @@ def api_messages():
 
         return jsonify({"success": True, "message_id": msg_id})
 
-    else:  # GET messages
+    else:
         other_user = request.args.get("with", "").strip()
         if not other_user:
             return jsonify({"error": "Recipient required"}), 400
@@ -182,7 +176,7 @@ def api_messages():
         for msg in messages:
             if msg["recipient"] == current_user and msg["status"] == "sent":
                 database.update_message_status(msg["id"], "delivered")
-                msg["status"] = "delivered"  # Immediate reflection in JSON
+                msg["status"] = "delivered"
 
         return jsonify({"messages": messages})
 

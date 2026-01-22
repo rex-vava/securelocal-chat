@@ -3,7 +3,7 @@ Check network configuration
 """
 
 import socket
-import netifaces  # Optional, install with: pip install netifaces
+# import netifaces  # Optional, install with: pip install netifaces
 
 def check_network():
     print("="*60)
