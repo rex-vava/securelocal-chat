@@ -165,3 +165,53 @@
     align-items: center;
     justify-content: center;
 }
+/* ----------------- Message Status Badges ----------------- */
+.message-time .status {
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-transform: uppercase;
+}
+
+/* Colors for different statuses */
+.status.sent {
+    background-color: #3498db; /* Blue */
+    color: #fff;
+}
+
+.status.delivered {
+    background-color: #f1c40f; /* Yellow */
+    color: #000;
+}
+
+.status.read {
+    background-color: #2ecc71; /* Green */
+    color: #fff;
+}
+
+/* Optional: subtle shadow for readability */
+.message-time .status {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Make message-time area flex to align badges properly */
+.message-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #555;
+}
+
+/* For dark mode, adjust status badge text visibility */
+@media (prefers-color-scheme: dark) {
+    .status.delivered {
+        color: #000;
+    }
+    .status.sent, .status.read {
+        color: #fff;
+    }
+}
