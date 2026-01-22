@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureLocal Chat - {{ username }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #eaeef3; height: 100vh; }
+        
+        .app-container { display: flex; height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar { width: 300px; background: white; border-right: 1px solid #ddd; }
+        .user-header { padding: 20px; background: #2c3e50; color: white; }
+        .user-info { display: flex; justify-content: space-between; align-items: center; }
+        .logout-btn { background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; 
+                     border-radius: 4px; text-decoration: none; }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        .online-users { padding: 20px; }
+        .online-users h3 { margin-bottom: 15px; color: #333; }
+        .user-list { list-style: none; }
+        .user-item { padding: 12px; border-radius: 6px; margin-bottom: 8px; 
+                    cursor: pointer; border: 1px solid #eee; }
+        .user-item:hover { background: #f5f5f5; }
+        .user-item.active { background: #e3f2fd; border-color: #2196f3; }
+        .user-name { font-weight: bold; }
+        .user-ip { font-size: 12px; color: #666; }
+        
+        /* Chat Area */
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: white; }
+        .chat-header { padding: 20px; border-bottom: 1px solid #ddd; }
+        .chat-header h2 { color: #333; }
+        
+        .messages-container { flex: 1; padding: 20px; overflow-y: auto; background: #78a18d; }
+        .message { margin-bottom: 15px; max-width: 70%; }
+        .message.sent { margin-left: auto; text-align: right; }
+        .message.received { margin-right: auto; }
+        .message-bubble { padding: 10px 15px; border-radius: 18px; display: inline-block; 
+                         max-width: 100%; word-wrap: break-word; }
+        .sent .message-bubble { background: #0084ff; color: white; }
+        .received .message-bubble { background: #e4e6eb; color: #333; }
+        .message-time { font-size: 11px; color: #888; margin-top: 4px; }
+        
+        .message-input { padding: 20px; border-top: 1px solid #ddd; }
+        .input-container { display: flex; gap: 10px; }
+        #messageInput { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; }
+        #sendBtn { padding: 12px 24px; background: #0084ff; color: white; border: none; 
+                  border-radius: 4px; cursor: pointer; }
+        #sendBtn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .empty-state { text-align: center; padding: 40px; color: #666; }
+        .loading { text-align: center; padding: 20px; }
+    </style>
+</head>
+<body data-username="{{ username }}">
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="user-header">
+                <div class="user-info">
+                    <div>
+                        <h2>{{ username }}</h2>
+                        <small style="opacity: 0.8;">Port: 6667</small>
+                    </div>
+                    <a href="/logout" class="logout-btn">Logout</a>
+                </div>
+            </div>
+            
+            <div class="online-users">
+                <h3>👥 Online Users</h3>
+                <ul id="userList" class="user-list">
+                    <div class="loading">Loading users...</div>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="chat-area">
+            <div class="chat-header">
+                <h2 id="currentChat">Select a user to chat</h2>
+            </div>
+            
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-state">
+                    <h3>Welcome to SecureLocal Chat</h3>
+                    <p>Select a user from the sidebar to start chatting</p>
+                    <p style="margin-top: 20px; font-size: 14px; color: #888;">
+                        All communication happens directly between devices on port 6667
+                    </p>
+                </div>
+            </div>
+            
+            <div class="message-input">
+                <div class="input-container">
+                    <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+                    <button id="sendBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/chat.js"></script>
+
+</body>
+</html>

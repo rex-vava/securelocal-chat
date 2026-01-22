@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureLocal Chat - Register</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .register-container {
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .register-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .logo p {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #dee2e6;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .alert.error {
+            background: #ffeaea;
+            color: #e74c3c;
+            border: 1px solid #fadbd8;
+            display: block;
+        }
+        
+        .alert.success {
+            background: #e8f6e8;
+            color: #27ae60;
+            border: 1px solid #d4efdf;
+            display: block;
+        }
+        
+        .security-modes {
+            margin: 20px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        
+        .mode-option {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .mode-option:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .mode-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .mode-title {
+            font-weight: bold;
+            color: #2c3e50;
+            flex-grow: 1;
+        }
+        
+        .mode-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .mode-badge.basic { background: #3498db; color: white; }
+        .mode-badge.enhanced { background: #9b59b6; color: white; }
+        .mode-badge.maximum { background: #e74c3c; color: white; }
+        
+        .mode-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .mode-features {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            padding-left: 15px;
+        }
+        
+        .mode-features li {
+            margin: 3px 0;
+        }
+        
+        .links {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        
+        .links a:hover {
+            text-decoration: underline;
+        }
+        
+        .password-requirements {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .password-requirements h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .requirements-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .requirements-list li {
+            margin: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .requirements-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+        }
+        
+        .requirement-met {
+            color: #27ae60;
+        }
+        
+        .requirement-not-met {
+            color: #e74c3c;
+        }
+        
+        @media (max-width: 480px) {
+            .register-card {
+                padding: 30px 20px;
+            }
+            
+            .security-modes {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="logo">
+                <h1>🔒 Create Account</h1>
+                <p>Join SecureLocal Chat on your local network</p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form action="/register" method="POST" id="registerForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required 
+                           placeholder="Choose a username (min 3 chars)" 
+                           minlength="3"
+                           oninput="validateUsername()">
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+                        This will be visible to other users on your network
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Create a password (min 6 chars)"
+                           minlength="6"
+                           oninput="validatePassword()">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required 
+                           placeholder="Re-enter your password"
+                           oninput="validatePassword()">
+                </div>
+                
+                <div class="security-modes">
+                    <h3 style="margin-bottom: 15px; color: #2c3e50;">Select Security Level</h3>
+                    
+                    <div class="mode-option">
+                        <div class="mode-header">
+                            <div class="mode-title">Basic Mode</div>
+                            <span class="mode-badge basic">Recommended</span>
+                        </div>
+                        <p class="mode-description">For home networks - Fast and simple</p>
+                        <ul class="mode-features">
+                            <li>Simple password authentication</li>
+                            <li>Messages stored locally only</li>
+                            <li>File sharing enabled</li>
+                        </ul>
+                        <label style="display: flex; align-items: center; margin-top: 8px;">
+                            <input type="radio" name="security_mode" value="1" checked style="margin-right: 8px;">
+                            Select Basic Mode
+                        </label>
+                    </div>
+                    
+                    <div class="mode-option">
+                        <div class="mode-header">
+                            <div class="mode-title">Enhanced Privacy</div>
+                            <span class="mode-badge enhanced">Secure</span>
+                        </div>
+                        <p class="mode-description">For sensitive conversations</p>
+                        <ul class="mode-features">
+                            <li>All Basic features +</li>
+                            <li>Message encryption (AES-256)</li>
+                            <li>File encryption before transfer</li>
+                            <li>Auto-clear history after 30 days</li>
+                        </ul>
+                        <label style="display: flex; align-items: center; margin-top: 8px;">
+                            <input type="radio" name="security_mode" value="2" style="margin-right: 8px;">
+                            Select Enhanced Privacy
+                        </label>
+                    </div>
+                    
+                    <div class="mode-option">
+                        <div class="mode-header">
+                            <div class="mode-title">Maximum Security</div>
+                            <span class="mode-badge maximum">Ultra Secure</span>
+                        </div>
+                        <p class="mode-description">For confidential data</p>
+                        <ul class="mode-features">
+                            <li>All Enhanced features +</li>
+                            <li>End-to-end encryption keys</li>
+                            <li>Self-destructing messages option</li>
+                            <li>Ephemeral mode available</li>
+                        </ul>
+                        <label style="display: flex; align-items: center; margin-top: 8px;">
+                            <input type="radio" name="security_mode" value="3" style="margin-right: 8px;">
+                            Select Maximum Security
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="password-requirements">
+                    <h4>Password Requirements:</h4>
+                    <ul class="requirements-list">
+                        <li id="req-length">At least 6 characters</li>
+                        <li id="req-match">Passwords must match</li>
+                    </ul>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">Create Account</button>
+                <a href="/login" class="btn btn-secondary">Back to Login</a>
+            </form>
+            
+            <div class="links">
+                <p>Already have an account? <a href="/login">Sign in here</a></p>
+                <p><a href="/setup">Advanced setup options</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let usernameValid = false;
+        let passwordValid = false;
+        
+        function validateUsername() {
+            const username = document.getElementById('username').value;
+            const submitBtn = document.getElementById('submitBtn');
+            
+            usernameValid = username.length >= 3;
+            updateSubmitButton();
+        }
+        
+        function validatePassword() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Check length requirement
+            const lengthReq = document.getElementById('req-length');
+            const lengthValid = password.length >= 6;
+            lengthReq.className = lengthValid ? 'requirement-met' : 'requirement-not-met';
+            
+            // Check match requirement
+            const matchReq = document.getElementById('req-match');
+            const matchValid = password === confirmPassword && password.length > 0;
+            matchReq.className = matchValid ? 'requirement-met' : 'requirement-not-met';
+            
+            passwordValid = lengthValid && matchValid;
+            updateSubmitButton();
+        }
+        
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = !(usernameValid && passwordValid);
+            submitBtn.style.opacity = submitBtn.disabled ? '0.6' : '1';
+            submitBtn.style.cursor = submitBtn.disabled ? 'not-allowed' : 'pointer';
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s';
+                setTimeout(() => alert.style.display = 'none', 500);
+            });
+        }, 5000);
+        
+        // Initialize validation
+        validateUsername();
+        validatePassword();
+        
+        // Focus on username field
+        document.getElementById('username').focus();
+        
+        // Form submission validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            if (!usernameValid || !passwordValid) {
+                e.preventDefault();
+                alert('Please fix the errors before submitting.');
+                return false;
+            }
+            
+            // Disable button to prevent double submit
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = 'Creating Account...';
+            return true;
+        });
+    </script>
+</body>
+</html>
