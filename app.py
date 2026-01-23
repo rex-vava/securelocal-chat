@@ -147,7 +147,7 @@ def api_messages():
         return jsonify({'error': 'Not logged in'}), 401
     current_user = session['username']
 
-    if request.method == 'POST':
+    if request.method == "POST":
         data = request.json
         recipient = data.get("recipient", "").strip()
         message = data.get("message", "").strip()
@@ -155,13 +155,20 @@ def api_messages():
         if not recipient or not message:
             return jsonify({"error": "Recipient and message required"}), 400
 
-        msg_id = database.save_message(current_user, recipient, message, is_encrypted=False)
+        msg_id = database.save_message(
+            current_user, recipient, message, is_encrypted=False
+        )
 
-        # Send message via network if recipient is online
         if network:
-          recipient_user = next((uid for uid, u in network.get_online_users().items() if u['username'] == recipient), None)
-        if recipient_user:
-            network.send_message(recipient_user, message)
+            try:
+                recipient_user = next(
+                    (u for u in network.get_online_users() if u["username"] == recipient),
+                    None
+                )
+                if recipient_user:
+                    network.send_message(recipient_user["user_id"], message)
+            except Exception as e:
+                print("[NETWORK SEND ERROR]", e)
 
         return jsonify({"success": True, "message_id": msg_id})
 
