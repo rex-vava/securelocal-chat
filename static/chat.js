@@ -66,30 +66,37 @@ async function loadMessages(recipient) {
 
 function displayMessages(messages) {
     messagesEl.innerHTML = '';
-    if (!messages.length) {
+
+    if (!Array.isArray(messages) || !messages.length) {
         messagesEl.innerHTML = '<div class="empty-state">No messages yet</div>';
         return;
     }
 
     messages.forEach(msg => {
+        if (!msg || !msg.sender) return;
+
         const div = document.createElement('div');
-        const isSent = msg.sender.trim().toLowerCase() === username;
+        const isSent = msg.sender.toLowerCase() === username;
         div.className = `message ${isSent ? 'sent' : 'received'}`;
 
-        const time = new Date(msg.timestamp).toLocaleTimeString();
-        let statusHTML = '';
+        const time = msg.timestamp
+            ? new Date(msg.timestamp).toLocaleTimeString()
+            : '';
 
+        let statusHTML = '';
         if (isSent) {
-            // Show "sent", "delivered", "read"
             if (msg.status === 'read') statusHTML = '<span class="status read">Read</span>';
             else if (msg.status === 'delivered') statusHTML = '<span class="status delivered">Delivered</span>';
             else statusHTML = '<span class="status sent">Sent</span>';
         }
 
+        const text = msg.message || msg.plaintext || msg.content || '[Encrypted message]';
+
         div.innerHTML = `
-            <div class="message-bubble">${msg.message}</div>
+            <div class="message-bubble">${text}</div>
             <div class="message-time">${time} • ${msg.sender} ${statusHTML}</div>
         `;
+
         messagesEl.appendChild(div);
     });
 
@@ -173,7 +180,7 @@ async function fetchTyping() {
 // ----------------- Read Receipts -----------------
 async function markMessagesAsRead(messages) {
     for (const msg of messages) {
-        if (msg.recipient.toLowerCase() === username && msg.status !== 'read') {
+        if (msg.recipient && msg.recipient.toLowerCase() === username && msg.status !== 'read') {
             try {
                 await fetch('/api/update_status', {
                     method: 'POST',
